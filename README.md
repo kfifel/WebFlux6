@@ -1,6 +1,5 @@
 # WebFlux6
 
-# WebFlux6
 This is a sample project demonstrating the use of Spring WebFlux and reactive programming to create a simple CRUD application for handling POST entities.
 
 ## Project Structure
