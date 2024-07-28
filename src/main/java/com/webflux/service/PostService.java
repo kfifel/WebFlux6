@@ -3,10 +3,13 @@ package com.webflux.service;
 import com.webflux.entity.Post;
 import com.webflux.repository.PostRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -19,8 +22,8 @@ public class PostService {
         this.postRepository = postRepository;
     }
 
-    public Flux<Post> getAll() {
-        return postRepository.findAll();
+    public Flux<Post> getAll(PageRequest pageRequest) {
+        return postRepository.findAllBy(pageRequest);
     }
 
     public Mono<Post> find(String id) {
@@ -30,7 +33,11 @@ public class PostService {
     public Mono<Post> save(Post post) {
         post.setPostId(UUID.randomUUID().toString());
         return postRepository.save(post)
-                .doOnNext(savedPost -> log.info("Created Post: {}", savedPost))
+                .doOnError(error -> log.error("Error creating post: {}", error.getMessage(), error));
+    }
+
+    public Flux<Post> saveAll(List<Post> posts) {
+        return postRepository.saveAll(posts)
                 .doOnError(error -> log.error("Error creating post: {}", error.getMessage(), error));
     }
 
@@ -43,5 +50,25 @@ public class PostService {
                 })
                 .doOnNext(updatedPost -> log.info("Updated Post: {}", updatedPost))
                 .doOnError(error -> log.error("Error updating post: {}", error.getMessage(), error));
+    }
+
+    public void seed(Long size) {
+        List<Post> list = new ArrayList<>();
+        for (int i = 1; i <= size; i++) {
+            if(i % 500 == 0){
+                if(list.isEmpty())
+                    continue;
+                saveAll(list).subscribe();
+                list.clear();
+            } else {
+                list.add(Post.builder()
+                        .postId(UUID.randomUUID().toString())
+                        .title("Post " + i)
+                        .content("Content " + i)
+                        .build());
+            }
+        }
+        if (!list.isEmpty())
+            saveAll(list).subscribe();
     }
 }
